@@ -12,12 +12,12 @@ class ReportController extends Controller
         $data = DB::select("
             SELECT
                 d.name as department_name,
-                DATE_TRUNC('month', r.request_date) AS month,
+                strftime('%Y-%m', r.request_date) AS month,
                 COUNT(DISTINCT r.id) as total_requests
             FROM requests r
             JOIN users u ON r.user_id = u.id
             JOIN departments d ON u.department_id = d.id
-            GROUP BY d.name, DATE_TRUNC('month', r.request_date)
+            GROUP BY d.name, strftime('%Y-%m', r.request_date)
             ORDER BY month DESC
         ");
 
@@ -30,17 +30,22 @@ class ReportController extends Controller
             WITH ranked_categories AS (
                 SELECT
                     d.name AS department_name,
-                    DATE_TRUNC('month', r.request_date) AS month,
+                    strftime('%Y-%m', r.request_date) AS month,
                     ri.category,
                     COUNT(*) AS total,
-                    ROW_NUMBER() OVER (PARTITION BY d.name, DATE_TRUNC('month', r.request_date) ORDER BY COUNT(*) DESC) AS rank
+                    ROW_NUMBER() OVER (
+                        PARTITION BY d.name, strftime('%Y-%m', r.request_date)
+                        ORDER BY COUNT(*) DESC
+                    ) AS rank
                 FROM requests r
                 JOIN users u ON r.user_id = u.id
                 JOIN departments d ON u.department_id = d.id
-                JOIN request_item ri ON r.id = ri.request_id
-                GROUP BY d.name, DATE_TRUNC('month', r.request_date), ri.category
+                JOIN request_items ri ON r.id = ri.request_id
+                GROUP BY d.name, strftime('%Y-%m', r.request_date), ri.category
             )
-            SELECT * FROM ranked_categories WHERE rank = 1
+            SELECT department_name, month, category, total
+            FROM ranked_categories
+            WHERE rank = 1
         ");
 
         return response()->json($data);

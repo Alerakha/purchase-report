@@ -9,6 +9,8 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
+Route::post('/login', [\App\Http\Controllers\Auth\AuthController::class, 'login']);
+
 Route::middleware('auth:api')->group(function () {
     Route::get('/reports/requests-per-department', [ReportController::class, 'requestsPerDepartment']);
     Route::get('/reports/top-categories', [ReportController::class, 'topCategories']);
